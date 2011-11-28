@@ -7,7 +7,7 @@ module Data.Attoparsec.Iteratee
 ------------------------------------------------------------------------------
 import           Control.Exception
 import qualified Data.Attoparsec as Atto
-import           Data.Attoparsec hiding (many, Result(..))
+import           Data.Attoparsec hiding (Result)
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString as B
 import           Data.Iteratee
