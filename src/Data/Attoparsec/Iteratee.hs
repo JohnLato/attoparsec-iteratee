@@ -25,21 +25,22 @@ parserToIteratee :: (Monad m) =>
                     Parser a
                  -> Iteratee ByteString m a
 parserToIteratee p =
-    icont (f (parse p)) Nothing
+    icontP (f (parse p))
   where
     f k (EOF Nothing) =
         case feed (k B.empty) B.empty of
-          Atto.Fail _ err dsc -> throwErr (toException $ ParseError err dsc)
-          Atto.Partial _ -> throwErr (toException EofException)
+          Atto.Fail _ err dsc -> (throwErr (toException $ ParseError err dsc), EOF Nothing)
+          Atto.Partial _ -> (throwErr (toException EofException), EOF Nothing)
           Atto.Done rest v
-              | B.null rest -> idone v (EOF Nothing)
-              | otherwise -> idone v (Chunk rest)
-    f _ (EOF (Just e)) = throwErr e
+              | B.null rest -> (idone v, EOF Nothing)
+              | otherwise -> (idone v, EOF Nothing)
+    f _ (EOF (Just e)) = (throwErr e, EOF (Just e))
     f k (Chunk s)
-        | B.null s = icont (f k) Nothing
+        | B.null s = (icontP (f k), Chunk s)
         | otherwise =
             case k s of
-              Atto.Fail _ err dsc -> throwErr (toException $
+              Atto.Fail _ err dsc -> (throwErr (toException $
                                                ParseError err dsc)
-              Atto.Partial k' -> icont (f k') Nothing
-              Atto.Done rest v -> idone v (Chunk rest)
+                                      , Chunk empty)
+              Atto.Partial k' -> (icontP (f k'), Chunk empty)
+              Atto.Done rest v -> (idone v, Chunk rest)
